@@ -326,7 +326,7 @@ class Pipeline(_ScikitCompat):
         self,
         model,
         tokenizer: PreTrainedTokenizer = None,
-        modelcard: ModelCard = None,
+        modelcard: Optional[ModelCard] = None,
         framework: Optional[str] = None,
         args_parser: ArgumentHandler = None,
         device: int = -1,
@@ -358,7 +358,8 @@ class Pipeline(_ScikitCompat):
 
         self.model.save_pretrained(save_directory)
         self.tokenizer.save_pretrained(save_directory)
-        self.modelcard.save_pretrained(save_directory)
+        if self.modelcard is not None:
+            self.modelcard.save_pretrained(save_directory)
 
     def transform(self, X):
         """
@@ -476,7 +477,7 @@ class FeatureExtractionPipeline(Pipeline):
         self,
         model,
         tokenizer: PreTrainedTokenizer = None,
-        modelcard: ModelCard = None,
+        modelcard: Optional[ModelCard] = None,
         framework: Optional[str] = None,
         args_parser: ArgumentHandler = None,
         device: int = -1,
@@ -515,7 +516,7 @@ class FillMaskPipeline(Pipeline):
         self,
         model,
         tokenizer: PreTrainedTokenizer = None,
-        modelcard: ModelCard = None,
+        modelcard: Optional[ModelCard] = None,
         framework: Optional[str] = None,
         args_parser: ArgumentHandler = None,
         device: int = -1,
@@ -582,7 +583,7 @@ class NerPipeline(Pipeline):
         self,
         model,
         tokenizer: PreTrainedTokenizer = None,
-        modelcard: ModelCard = None,
+        modelcard: Optional[ModelCard] = None,
         framework: Optional[str] = None,
         args_parser: ArgumentHandler = None,
         device: int = -1,
@@ -646,6 +647,9 @@ class NerPipeline(Pipeline):
         if len(answers) == 1:
             return answers[0]
         return answers
+
+
+TokenClassificationPipeline = NerPipeline
 
 
 class QuestionAnsweringArgumentHandler(ArgumentHandler):
@@ -721,7 +725,7 @@ class QuestionAnsweringPipeline(Pipeline):
         self,
         model,
         tokenizer: Optional[PreTrainedTokenizer],
-        modelcard: Optional[ModelCard],
+        modelcard: Optional[ModelCard] = None,
         framework: Optional[str] = None,
         device: int = -1,
         **kwargs
@@ -940,9 +944,9 @@ SUPPORTED_TASKS = {
         "tf": TFAutoModel if is_tf_available() else None,
         "pt": AutoModel if is_torch_available() else None,
         "default": {
-            "model": {"pt": "distilbert-base-uncased", "tf": "distilbert-base-uncased"},
+            "model": {"pt": "distilbert-base-cased", "tf": "distilbert-base-cased"},
             "config": None,
-            "tokenizer": "distilbert-base-uncased",
+            "tokenizer": "distilbert-base-cased",
         },
     },
     "sentiment-analysis": {
@@ -976,12 +980,9 @@ SUPPORTED_TASKS = {
         "tf": TFAutoModelForQuestionAnswering if is_tf_available() else None,
         "pt": AutoModelForQuestionAnswering if is_torch_available() else None,
         "default": {
-            "model": {
-                "pt": "distilbert-base-uncased-distilled-squad",
-                "tf": "distilbert-base-uncased-distilled-squad",
-            },
+            "model": {"pt": "distilbert-base-cased-distilled-squad", "tf": "distilbert-base-cased-distilled-squad"},
             "config": None,
-            "tokenizer": "distilbert-base-uncased",
+            "tokenizer": ("distilbert-base-cased", {"use_fast": False}),
         },
     },
     "fill-mask": {
@@ -991,7 +992,7 @@ SUPPORTED_TASKS = {
         "default": {
             "model": {"pt": "distilroberta-base", "tf": "distilroberta-base"},
             "config": None,
-            "tokenizer": "distilroberta-base",
+            "tokenizer": ("distilroberta-base", {"use_fast": False}),
         },
     },
 }
@@ -1003,6 +1004,7 @@ def pipeline(
     config: Optional[Union[str, PretrainedConfig]] = None,
     tokenizer: Optional[Union[str, PreTrainedTokenizer]] = None,
     modelcard: Optional[Union[str, ModelCard]] = None,
+    framework: Optional[str] = None,
     **kwargs
 ) -> Pipeline:
     """
@@ -1014,7 +1016,7 @@ def pipeline(
 
     Examples:
         pipeline('sentiment-analysis')
-        pipeline('question-answering', model='distilbert-base-uncased-distilled-squad', tokenizer='bert-base-cased')
+        pipeline('question-answering', model='distilbert-base-cased-distilled-squad', tokenizer='bert-base-cased')
         pipeline('ner', model=AutoModel.from_pretrained(...), tokenizer=AutoTokenizer.from_pretrained(...)
         pipeline('ner', model='dbmdz/bert-large-cased-finetuned-conll03-english', tokenizer='bert-base-cased')
         pipeline('ner', model='https://...pytorch-model.bin', config='https://...config.json', tokenizer='bert-base-cased')
@@ -1023,7 +1025,7 @@ def pipeline(
     if task not in SUPPORTED_TASKS:
         raise KeyError("Unknown task {}, available tasks are {}".format(task, list(SUPPORTED_TASKS.keys())))
 
-    framework = get_framework(model)
+    framework = framework or get_framework(model)
 
     targeted_task = SUPPORTED_TASKS[task]
     task, model_class = targeted_task["impl"], targeted_task[framework]
@@ -1055,8 +1057,12 @@ def pipeline(
             modelcard = config
 
     # Instantiate tokenizer if needed
-    if isinstance(tokenizer, str):
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer)
+    if isinstance(tokenizer, (str, tuple)):
+        if isinstance(tokenizer, tuple):
+            # For tuple we have (tokenizer name, {kwargs})
+            tokenizer = AutoTokenizer.from_pretrained(tokenizer[0], **tokenizer[1])
+        else:
+            tokenizer = AutoTokenizer.from_pretrained(tokenizer)
 
     # Instantiate config if needed
     if isinstance(config, str):
