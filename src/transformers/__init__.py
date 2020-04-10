@@ -2,7 +2,7 @@
 # There's no way to ignore "F401 '...' imported but unused" warnings in this
 # module, but to preserve other warnings. So, don't check this module at all.
 
-__version__ = "2.6.0"
+__version__ = "2.8.0"
 
 # Work around to update TensorFlow's absl.logging threshold which alters the
 # default Python logging output behavior when present.
@@ -38,6 +38,7 @@ from .configuration_bert import BERT_PRETRAINED_CONFIG_ARCHIVE_MAP, BertConfig
 from .configuration_camembert import CAMEMBERT_PRETRAINED_CONFIG_ARCHIVE_MAP, CamembertConfig
 from .configuration_ctrl import CTRL_PRETRAINED_CONFIG_ARCHIVE_MAP, CTRLConfig
 from .configuration_distilbert import DISTILBERT_PRETRAINED_CONFIG_ARCHIVE_MAP, DistilBertConfig
+from .configuration_electra import ELECTRA_PRETRAINED_CONFIG_ARCHIVE_MAP, ElectraConfig
 from .configuration_flaubert import FLAUBERT_PRETRAINED_CONFIG_ARCHIVE_MAP, FlaubertConfig
 from .configuration_gpt2 import GPT2_PRETRAINED_CONFIG_ARCHIVE_MAP, GPT2Config
 from .configuration_mmbt import MMBTConfig
@@ -116,6 +117,7 @@ from .pipelines import (
     SummarizationPipeline,
     TextClassificationPipeline,
     TokenClassificationPipeline,
+    TranslationPipeline,
     pipeline,
 )
 from .tokenization_albert import AlbertTokenizer
@@ -126,6 +128,7 @@ from .tokenization_bert_japanese import BertJapaneseTokenizer, CharacterTokenize
 from .tokenization_camembert import CamembertTokenizer
 from .tokenization_ctrl import CTRLTokenizer
 from .tokenization_distilbert import DistilBertTokenizer, DistilBertTokenizerFast
+from .tokenization_electra import ElectraTokenizer, ElectraTokenizerFast
 from .tokenization_flaubert import FlaubertTokenizer
 from .tokenization_gpt2 import GPT2Tokenizer, GPT2TokenizerFast
 from .tokenization_openai import OpenAIGPTTokenizer, OpenAIGPTTokenizerFast
@@ -221,6 +224,7 @@ if is_torch_available():
         XLMModel,
         XLMWithLMHeadModel,
         XLMForSequenceClassification,
+        XLMForTokenClassification,
         XLMForQuestionAnswering,
         XLMForQuestionAnsweringSimple,
         XLM_PRETRAINED_MODEL_ARCHIVE_MAP,
@@ -293,6 +297,15 @@ if is_torch_available():
         FlaubertForQuestionAnswering,
         FlaubertForQuestionAnsweringSimple,
         FLAUBERT_PRETRAINED_MODEL_ARCHIVE_MAP,
+    )
+
+    from .modeling_electra import (
+        ElectraForPreTraining,
+        ElectraForMaskedLM,
+        ElectraForTokenClassification,
+        ElectraModel,
+        load_tf_weights_in_electra,
+        ELECTRA_PRETRAINED_MODEL_ARCHIVE_MAP,
     )
 
     # Optimization
@@ -459,6 +472,15 @@ if is_tf_available():
         TFT5Model,
         TFT5ForConditionalGeneration,
         TF_T5_PRETRAINED_MODEL_ARCHIVE_MAP,
+    )
+
+    from .modeling_tf_electra import (
+        TFElectraPreTrainedModel,
+        TFElectraModel,
+        TFElectraForPreTraining,
+        TFElectraForMaskedLM,
+        TFElectraForTokenClassification,
+        TF_ELECTRA_PRETRAINED_MODEL_ARCHIVE_MAP,
     )
 
     # Optimization
